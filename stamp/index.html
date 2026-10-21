@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>스탬프 카드</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #f5f5f0; padding: 24px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  .card {
+    width: 100%; max-width: 400px; background: #ffffff; border-radius: 20px;
+    border: 1px solid #e5e5e0; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 28px 22px 26px;
+  }
+  .brand { font-size: 15px; font-weight: 500; color: #6b7076; margin: 0; }
+  .head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 20px; }
+  .title { font-size: 28px; font-weight: 800; color: #191f28; margin: 0; letter-spacing: -0.02em; }
+  .goal { color: #c3c6cb; }
+  .ticket { background: none; border: none; padding: 0; display: block; line-height: 0; }
+  .ticket--click { cursor: pointer; }
+  .bar { height: 12px; border-radius: 6px; background: #eceef1; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; background: #3182F6; min-width: 12px; transition: width .4s ease; }
+  .caption { margin: 14px 0 0; text-align: right; font-size: 14px; color: #4e5968; }
+  .hl { color: #3182F6; font-weight: 600; }
+  #rewardTrigger { margin-top: 10px; }
+  .gift-btn {
+    width: 100%; padding: 10px; border: none; border-radius: 10px; background: #1a1a1a;
+    color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  #rewardPanel { margin-top: 12px; text-align: center; }
+  .reward-title { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 10px; }
+  .reward-btn {
+    width: 100%; padding: 10px; margin-top: 8px; border: none; border-radius: 10px; background: #3182F6;
+    color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .reward-cancel {
+    display: block; margin: 10px auto 0; background: none; border: none; color: #888; font-size: 12px; cursor: pointer;
+  }
+  .coupon-card {
+    margin-top: 8px; padding: 24px 16px; border-radius: 14px; background: #3182F6; color: #fff; text-align: center;
+  }
+  .coupon-brand { font-size: 12px; opacity: 0.85; margin: 0; }
+  .coupon-label { font-size: 15px; font-weight: 700; margin: 6px 0 14px; }
+  .coupon-code {
+    font-size: 20px; font-weight: 800; letter-spacing: 0.05em; background: rgba(255,255,255,0.18);
+    border-radius: 8px; padding: 10px; margin: 0 0 12px;
+  }
+  .copy-btn {
+    border: 1.5px solid rgba(255,255,255,0.7); background: transparent; color: #fff;
+    border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .steps { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: #f2f4f6; }
+  .steps-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #191f28; }
+  .steps ol { margin: 0; padding-left: 18px; font-size: 13px; color: #4e5968; line-height: 1.7; }
+  .coupon-note { margin: 10px 2px 0; font-size: 11.5px; color: #8b95a1; line-height: 1.5; }
+  .msg { text-align: center; color: #888; font-size: 14px; line-height: 1.6; padding: 12px 0; }
+  .msg .reward-btn { max-width: 200px; }
+  .sk { background: #eceef1; border-radius: 8px; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .5; } }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div id="app">
+      <div class="sk" style="height:18px;width:90px"></div>
+      <div class="sk" style="height:34px;width:60%;margin:12px 0 22px"></div>
+      <div class="sk" style="height:12px"></div>
+      <div class="sk" style="height:16px;width:70%;margin:16px 0 0 auto"></div>
+    </div>
+  </div>
+
+<script>
+// 에브리아워 스탬프 카드 — GitHub Pages 정적 페이지. 화면은 여기서 그리고, 데이터는 Apps Script(JSON)에서 받는다.
+// 주소(?t=<토큰>)는 카카오 템플릿 버튼에 박혀 있으므로 경로·쿼리 이름을 바꾸지 말 것. 디자인은 자유롭게 수정 가능.
+var GAS_URL = "https://script.google.com/macros/s/AKfycbzlBk4KaPW1noxnxf0EwWhgu7YLnm8UaxW1N0uaI_x1hBXwm4ViTKEOyW287uxehABa/exec";
+var TOKEN = new URLSearchParams(location.search).get("t") || "";
+var app = document.getElementById("app");
+var couponData = null;
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+// 받은 쿠폰은 이 기기에 저장해 두었다가 다시 열면 보여준다(새로고침해도 코드가 사라지지 않게)
+function saveCoupon(d) { try { localStorage.setItem("eh_coupon_" + TOKEN, JSON.stringify(d)); } catch (e) {} }
+function loadCoupon() { try { return JSON.parse(localStorage.getItem("eh_coupon_" + TOKEN) || "null"); } catch (e) { return null; } }
+
+function request(url, opts) {
+  var ctl = new AbortController();
+  var timer = setTimeout(function () { ctl.abort(); }, 25000);
+  opts = opts || {};
+  opts.signal = ctl.signal;
+  return fetch(url, opts)
+    .then(function (r) { return r.json(); })
+    .finally(function () { clearTimeout(timer); });
+}
+
+function message(text, withRetry) {
+  app.innerHTML = '<div class="msg">' + esc(text) +
+    (withRetry ? '<button class="reward-btn" onclick="init()">다시 시도</button>' : "") + "</div>";
+}
+
+function ticketIcon(clickable) {
+  var svg = '<svg viewBox="0 0 56 44" width="56" height="44" aria-hidden="true">' +
+    '<path d="M8 2h40a6 6 0 0 1 6 6v8a6 6 0 0 0 0 12v8a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-8a6 6 0 0 0 0-12V8a6 6 0 0 1 6-6z" fill="#8DBBFF" />' +
+    '<path d="M28 12l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2L28 28.5l-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1z" fill="#3182F6" /></svg>';
+  return clickable
+    ? '<button class="ticket ticket--click" onclick="openReward()" aria-label="무료쿠폰 받기">' + svg + "</button>"
+    : '<div class="ticket">' + svg + "</div>";
+}
+
+function renderCard(d) {
+  var reached = d.count >= d.goal;
+  var pct = Math.max(0, Math.min(100, Math.round((d.count / d.goal) * 100)));
+  var caption = reached
+    ? esc(d.goal) + '개를 모두 모았어요! <span class="hl">' + esc(d.rewardName) + "</span>을 받아보세요"
+    : esc(d.goal - d.count) + '개 더 모으면 <span class="hl">' + esc(d.rewardName) + "</span>";
+  app.innerHTML =
+    '<div id="progressArea">' +
+      '<p class="brand">' + esc(d.branchName) + "</p>" +
+      '<div class="head"><p class="title">스탬프 ' + esc(d.count) + '<span class="goal"> / ' + esc(d.goal) + "개</span></p>" + ticketIcon(reached) + "</div>" +
+      '<div class="bar"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+      '<p class="caption">' + caption + "</p>" +
+      '<div id="rewardTrigger" style="display:' + (reached ? "block" : "none") + '"><button class="gift-btn" onclick="openReward()">무료쿠폰 받기</button></div>' +
+      '<div id="rewardPanel" style="display:none">' +
+        '<p class="reward-title">원데이(15h) 이용권을 받으시겠어요?<br/>받으면 스탬프가 0개로 초기화돼요.</p>' +
+        '<button class="reward-btn" onclick="claimReward()">이용권 받기</button>' +
+        '<button class="reward-cancel" onclick="closeReward()">취소</button>' +
+      "</div>" +
+    "</div>";
+  document.title = d.branchName + " 스탬프 카드";
+}
+
+function openReward() {
+  document.getElementById("rewardTrigger").style.display = "none";
+  document.getElementById("rewardPanel").style.display = "block";
+}
+function closeReward() {
+  document.getElementById("rewardPanel").style.display = "none";
+  document.getElementById("rewardTrigger").style.display = "block";
+}
+
+function claimReward() {
+  var panel = document.getElementById("rewardPanel");
+  panel.innerHTML = '<p class="reward-title">처리 중...</p>';
+  // Content-Type을 지정하지 않으면 text/plain → CORS 사전요청 없이 Apps Script로 전달된다
+  request(GAS_URL, { method: "POST", body: JSON.stringify({ action: "claim", t: TOKEN, reward: "oneday" }) })
+    .then(function (res) {
+      if (!res.ok) throw new Error(res.error || "fail");
+      saveCoupon(res.data);
+      showCoupon(res.data);
+    })
+    .catch(function (err) {
+      var notReached = String(err && err.message).indexOf("달성") >= 0;
+      panel.innerHTML = '<p class="reward-title">' +
+        (notReached ? "아직 목표를 달성하지 않았어요." : "오류가 발생했어요. 다시 시도해주세요.") +
+        '</p><button class="reward-cancel" onclick="init()">닫기</button>';
+    });
+}
+
+function showCoupon(data, saved) {
+  couponData = data;
+  var stepsHtml = "";
+  if (data.steps && data.steps.length) {
+    stepsHtml = '<div class="steps"><p class="steps-title">쿠폰 등록 방법</p><ol>';
+    for (var i = 0; i < data.steps.length; i++) stepsHtml += "<li>" + esc(data.steps[i]) + "</li>";
+    stepsHtml += "</ol></div>";
+  }
+  app.innerHTML =
+    (saved ? '<p class="coupon-note" style="text-align:center;margin:0 0 6px">이전에 받은 쿠폰이에요</p>' : "") +
+    '<div id="couponCard" class="coupon-card">' +
+      '<p class="coupon-brand">' + esc(data.branchName) + "</p>" +
+      '<p class="coupon-label">' + esc(data.label) + "</p>" +
+      (data.code ? '<p class="coupon-code">' + esc(data.code) + '</p><button class="copy-btn" onclick="copyCode()">코드 복사</button>' : "") +
+    "</div>" + stepsHtml +
+    '<p class="coupon-note">' + esc(data.disclaimer) + "</p>" +
+    (data.code ? '<button class="reward-btn" onclick="downloadCoupon()">이미지로 저장</button><div id="savedImage"></div>' : "");
+}
+
+function copyCode() {
+  var d = couponData;
+  if (!d || !d.code) return;
+  var btn = document.querySelector(".copy-btn");
+  function done() { if (btn) { btn.textContent = "복사됨"; setTimeout(function () { btn.textContent = "코드 복사"; }, 1500); } }
+  // 카카오톡 인앱 브라우저는 clipboard API가 막힐 수 있어 execCommand로 대체
+  function fallback() {
+    var ta = document.createElement("textarea");
+    ta.value = d.code; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); done(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(d.code).then(done).catch(fallback);
+  else fallback();
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function wrapLines(ctx, text, maxWidth) {
+  var words = text.split(" "), line = "", lines = [];
+  for (var i = 0; i < words.length; i++) {
+    var test = line ? line + " " + words[i] : words[i];
+    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = words[i]; } else line = test;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// canvas 2D로 직접 그려서 저장 — 이미지 로드가 없어 iOS Safari/카카오톡 인앱 브라우저의 "Tainted canvas" 오류가 없다.
+// 높이는 등록 방법/안내 문구 줄 수에 맞춰 먼저 측정한 뒤 캔버스를 만든다.
+function downloadCoupon() {
+  var d = couponData;
+  if (!d) return;
+  var w = 640, scale = 2, font = "-apple-system, sans-serif", innerW = w - 160;
+  var m = document.createElement("canvas").getContext("2d");
+  m.font = "400 14px " + font;
+  var stepLines = [];
+  (d.steps || []).forEach(function (t, idx) { stepLines.push(wrapLines(m, (idx + 1) + ". " + t, innerW)); });
+  m.font = "400 12px " + font;
+  var noteLines = wrapLines(m, d.disclaimer, innerW);
+  var stepsH = 0;
+  stepLines.forEach(function (ls) { stepsH += ls.length * 22 + 4; });
+  var h = 190 + (d.code ? 90 : 20) + (stepLines.length ? 40 + stepsH : 0) + noteLines.length * 18 + 40;
+
+  var canvas = document.createElement("canvas");
+  canvas.width = w * scale; canvas.height = h * scale;
+  var ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#f5f5f0"; ctx.fillRect(0, 0, w, h);
+  roundRectPath(ctx, 20, 20, w - 40, h - 40, 18); ctx.fillStyle = "#ffffff"; ctx.fill();
+  var topH = d.code ? 190 : 120;
+  roundRectPath(ctx, 40, 40, w - 80, topH, 14); ctx.fillStyle = "#3182F6"; ctx.fill();
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 15px " + font; ctx.fillText(d.branchName, w / 2, 80);
+  ctx.fillStyle = "#ffffff"; ctx.font = "700 20px " + font; ctx.fillText(d.label, w / 2, 114);
+  if (d.code) {
+    roundRectPath(ctx, 100, 136, w - 200, 56, 10); ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.font = "800 26px " + font; ctx.fillText(d.code, w / 2, 173);
+  }
+  var y = 40 + topH + 36;
+  ctx.textAlign = "left";
+  if (stepLines.length) {
+    ctx.fillStyle = "#191f28"; ctx.font = "700 15px " + font; ctx.fillText("쿠폰 등록 방법", 80, y); y += 28;
+    ctx.fillStyle = "#4e5968"; ctx.font = "400 14px " + font;
+    stepLines.forEach(function (ls) {
+      ls.forEach(function (line, i) { ctx.fillText((i > 0 ? "    " : "") + line, 80, y); y += 22; });
+      y += 4;
+    });
+    y += 8;
+  }
+  ctx.fillStyle = "#8b95a1"; ctx.font = "400 12px " + font;
+  noteLines.forEach(function (line) { ctx.fillText(line, 80, y); y += 18; });
+
+  // 인앱 브라우저에서는 파일 다운로드가 막히는 경우가 있어, 화면에 이미지를 띄워 길게 눌러 저장할 수 있게 하고 다운로드 링크도 함께 둔다
+  var dataUrl = canvas.toDataURL("image/png");
+  document.getElementById("savedImage").innerHTML =
+    '<p class="coupon-note" style="text-align:center">아래 이미지를 길게 눌러 저장하세요</p>' +
+    '<img src="' + dataUrl + '" style="width:100%;border-radius:12px;display:block" alt="쿠폰 이미지" />' +
+    '<a href="' + dataUrl + '" download="eh-coupon.png" class="reward-btn" style="display:block;text-align:center;text-decoration:none">이미지 다운로드</a>';
+}
+
+function init() {
+  if (!TOKEN) { message("링크가 유효하지 않습니다."); return; }
+  app.innerHTML = '<div class="sk" style="height:120px"></div>';
+  request(GAS_URL + "?api=stamp&t=" + encodeURIComponent(TOKEN))
+    .then(function (res) {
+      if (res.ok) { renderCard(res); return; }
+      // 수령 직후엔 스탬프가 0이라 카드를 못 찾을 수 있다 — 저장해 둔 쿠폰이 있으면 그걸 보여준다
+      var saved = loadCoupon();
+      if (res.error === "invalid" && saved) { showCoupon(saved, true); return; }
+      message(res.error === "invalid" ? "링크가 유효하지 않습니다." : "잠시 후 다시 시도해주세요.", res.error !== "invalid");
+    })
+    .catch(function () {
+      var saved = loadCoupon();
+      if (saved) { showCoupon(saved, true); return; }
+      message("연결에 실패했어요. 네트워크를 확인하고 다시 시도해주세요.", true);
+    });
+}
+init();
+</script>
+</body>
+</html>
