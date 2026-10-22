@@ -18,30 +18,31 @@
   }
   .brand { font-size: 15px; font-weight: 500; color: #6b7076; margin: 0; }
   .head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 20px; }
-  .title { font-size: 28px; font-weight: 800; color: #191f28; margin: 0; letter-spacing: -0.02em; }
+  .title { font-size: clamp(22px, 7.4vw, 28px); font-weight: 800; color: #191f28; margin: 0; letter-spacing: -0.02em; white-space: nowrap; }
   .goal { color: #c3c6cb; }
   .ticket { background: none; border: none; padding: 0; display: block; line-height: 0; }
   .ticket--click { cursor: pointer; }
+  .ticket img { display: block; width: 64px; height: 64px; }
   .bar { height: 12px; border-radius: 6px; background: #eceef1; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 6px; background: #3182F6; min-width: 12px; transition: width .4s ease; }
-  .caption { margin: 14px 0 0; text-align: right; font-size: 14px; color: #4e5968; }
-  .hl { color: #3182F6; font-weight: 600; }
+  .bar-fill { height: 100%; border-radius: 6px; background: #23db6d; min-width: 12px; transition: width .4s ease; }
+  .caption { margin: 14px 0 0; text-align: center; font-size: clamp(12px, 3.8vw, 14px); color: #4e5968; white-space: nowrap; }
+  .hl { color: #27c968; font-weight: 600; }
   #rewardTrigger { margin-top: 10px; }
+  .gift-btn:disabled { opacity: .6; cursor: default; }
   .gift-btn {
-    width: 100%; padding: 10px; border: none; border-radius: 10px; background: #1a1a1a;
+    width: 100%; padding: 10px; border: none; border-radius: 10px; background: #23db6d;
     color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
   }
-  #rewardPanel { margin-top: 12px; text-align: center; }
   .reward-title { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 10px; }
   .reward-btn {
-    width: 100%; padding: 10px; margin-top: 8px; border: none; border-radius: 10px; background: #3182F6;
+    width: 100%; padding: 10px; margin-top: 8px; border: none; border-radius: 10px; background: #23db6d;
     color: #fff; font-size: 13px; font-weight: 700; cursor: pointer;
   }
   .reward-cancel {
     display: block; margin: 10px auto 0; background: none; border: none; color: #888; font-size: 12px; cursor: pointer;
   }
   .coupon-card {
-    margin-top: 8px; padding: 24px 16px; border-radius: 14px; background: #3182F6; color: #fff; text-align: center;
+    margin-top: 8px; padding: 24px 16px; border-radius: 14px; background: #23db6d; color: #fff; text-align: center;
   }
   .coupon-brand { font-size: 12px; opacity: 0.85; margin: 0; }
   .coupon-label { font-size: 15px; font-weight: 700; margin: 6px 0 14px; }
@@ -81,6 +82,12 @@ var TOKEN = new URLSearchParams(location.search).get("t") || "";
 var app = document.getElementById("app");
 var couponData = null;
 
+// 화면에 보이는 지점명은 "에브리아워 구의점" 형태 (API는 "구의점"만 내려줌)
+function fullBranch(name) {
+  name = String(name || "");
+  return name.indexOf("에브리아워") === 0 ? name : "에브리아워 " + name;
+}
+
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -106,49 +113,49 @@ function message(text, withRetry) {
     (withRetry ? '<button class="reward-btn" onclick="init()">다시 시도</button>' : "") + "</div>";
 }
 
+// 오른쪽 도장 로고 — 달성 전에는 장식, 달성 후에는 눌러서 쿠폰을 받는 버튼. 이미지는 pages/assets/stamp-logo.png
+// 토큰이 없거나 올바르지 않을 때(예: 검수자가 링크를 직접 열어 볼 때) — 오류처럼 보이지 않게 안내 화면을 보여준다
+function showInvalid() {
+  app.innerHTML =
+    '<p class="brand">에브리아워</p>' +
+    '<div class="head"><p class="title">스탬프 적립 내역</p></div>' +
+    '<p class="msg" style="padding:0 0 4px">스탬프 적립 내역은 알림톡의 <b>[적립 내역 보기]</b> 버튼으로 접속하시면 확인하실 수 있어요.</p>';
+}
+
 function ticketIcon(clickable) {
-  var svg = '<svg viewBox="0 0 56 44" width="56" height="44" aria-hidden="true">' +
-    '<path d="M8 2h40a6 6 0 0 1 6 6v8a6 6 0 0 0 0 12v8a6 6 0 0 1-6 6H8a6 6 0 0 1-6-6v-8a6 6 0 0 0 0-12V8a6 6 0 0 1 6-6z" fill="#8DBBFF" />' +
-    '<path d="M28 12l3.2 6.6 7.3 1-5.3 5.1 1.3 7.2L28 28.5l-6.5 3.4 1.3-7.2-5.3-5.1 7.3-1z" fill="#3182F6" /></svg>';
+  var img = '<img src="../assets/stamp-logo.png" alt="에브리아워 스탬프" width="64" height="64" />';
   return clickable
-    ? '<button class="ticket ticket--click" onclick="openReward()" aria-label="무료쿠폰 받기">' + svg + "</button>"
-    : '<div class="ticket">' + svg + "</div>";
+    ? '<button class="ticket ticket--click" onclick="claimReward()" aria-label="무료쿠폰 받기">' + img + "</button>"
+    : '<div class="ticket">' + img + "</div>";
 }
 
 function renderCard(d) {
   var reached = d.count >= d.goal;
   var pct = Math.max(0, Math.min(100, Math.round((d.count / d.goal) * 100)));
   var caption = reached
-    ? esc(d.goal) + '개를 모두 모았어요! <span class="hl">' + esc(d.rewardName) + "</span>을 받아보세요"
+    ? '모두 모았어요! <span class="hl">' + esc(d.rewardName) + "</span>"
     : esc(d.goal - d.count) + '개 더 모으면 <span class="hl">' + esc(d.rewardName) + "</span>";
   app.innerHTML =
     '<div id="progressArea">' +
-      '<p class="brand">' + esc(d.branchName) + "</p>" +
+      '<p class="brand">' + esc(fullBranch(d.branchName)) + "</p>" +
       '<div class="head"><p class="title">스탬프 ' + esc(d.count) + '<span class="goal"> / ' + esc(d.goal) + "개</span></p>" + ticketIcon(reached) + "</div>" +
       '<div class="bar"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
       '<p class="caption">' + caption + "</p>" +
-      '<div id="rewardTrigger" style="display:' + (reached ? "block" : "none") + '"><button class="gift-btn" onclick="openReward()">무료쿠폰 받기</button></div>' +
-      '<div id="rewardPanel" style="display:none">' +
-        '<p class="reward-title">원데이(15h) 이용권을 받으시겠어요?<br/>받으면 스탬프가 0개로 초기화돼요.</p>' +
-        '<button class="reward-btn" onclick="claimReward()">이용권 받기</button>' +
-        '<button class="reward-cancel" onclick="closeReward()">취소</button>' +
-      "</div>" +
+      '<div id="rewardTrigger" style="display:' + (reached ? "block" : "none") + '"><button class="gift-btn" onclick="claimReward()">무료쿠폰 받기</button></div>' +
+      '<p id="claimMsg" class="coupon-note" style="text-align:center;margin-top:8px"></p>' +
     "</div>";
-  document.title = d.branchName + " 스탬프 카드";
+  document.title = fullBranch(d.branchName) + " 스탬프 카드";
 }
 
-function openReward() {
-  document.getElementById("rewardTrigger").style.display = "none";
-  document.getElementById("rewardPanel").style.display = "block";
-}
-function closeReward() {
-  document.getElementById("rewardPanel").style.display = "none";
-  document.getElementById("rewardTrigger").style.display = "block";
-}
-
+var claiming = false;
+// 로고나 "무료쿠폰 받기"를 누르면 바로 쿠폰을 받는다(확인 단계 없음). 받으면 스탬프가 0으로 초기화된다.
 function claimReward() {
-  var panel = document.getElementById("rewardPanel");
-  panel.innerHTML = '<p class="reward-title">처리 중...</p>';
+  if (claiming) return;
+  claiming = true;
+  var btn = document.querySelector(".gift-btn");
+  var msg = document.getElementById("claimMsg");
+  if (btn) { btn.disabled = true; btn.textContent = "처리 중..."; }
+  if (msg) msg.textContent = "";
   // Content-Type을 지정하지 않으면 text/plain → CORS 사전요청 없이 Apps Script로 전달된다
   request(GAS_URL, { method: "POST", body: JSON.stringify({ action: "claim", t: TOKEN, reward: "oneday" }) })
     .then(function (res) {
@@ -158,10 +165,10 @@ function claimReward() {
     })
     .catch(function (err) {
       var notReached = String(err && err.message).indexOf("달성") >= 0;
-      panel.innerHTML = '<p class="reward-title">' +
-        (notReached ? "아직 목표를 달성하지 않았어요." : "오류가 발생했어요. 다시 시도해주세요.") +
-        '</p><button class="reward-cancel" onclick="init()">닫기</button>';
-    });
+      if (btn) { btn.disabled = false; btn.textContent = "무료쿠폰 받기"; }
+      if (msg) msg.textContent = notReached ? "아직 목표를 달성하지 않았어요." : "오류가 발생했어요. 다시 시도해주세요.";
+    })
+    .finally(function () { claiming = false; });
 }
 
 function showCoupon(data, saved) {
@@ -175,7 +182,7 @@ function showCoupon(data, saved) {
   app.innerHTML =
     (saved ? '<p class="coupon-note" style="text-align:center;margin:0 0 6px">이전에 받은 쿠폰이에요</p>' : "") +
     '<div id="couponCard" class="coupon-card">' +
-      '<p class="coupon-brand">' + esc(data.branchName) + "</p>" +
+      '<p class="coupon-brand">' + esc(fullBranch(data.branchName)) + "</p>" +
       '<p class="coupon-label">' + esc(data.label) + "</p>" +
       (data.code ? '<p class="coupon-code">' + esc(data.code) + '</p><button class="copy-btn" onclick="copyCode()">코드 복사</button>' : "") +
     "</div>" + stepsHtml +
@@ -242,9 +249,9 @@ function downloadCoupon() {
   ctx.fillStyle = "#f5f5f0"; ctx.fillRect(0, 0, w, h);
   roundRectPath(ctx, 20, 20, w - 40, h - 40, 18); ctx.fillStyle = "#ffffff"; ctx.fill();
   var topH = d.code ? 190 : 120;
-  roundRectPath(ctx, 40, 40, w - 80, topH, 14); ctx.fillStyle = "#3182F6"; ctx.fill();
+  roundRectPath(ctx, 40, 40, w - 80, topH, 14); ctx.fillStyle = "#23db6d"; ctx.fill();
   ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 15px " + font; ctx.fillText(d.branchName, w / 2, 80);
+  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 15px " + font; ctx.fillText(fullBranch(d.branchName), w / 2, 80);
   ctx.fillStyle = "#ffffff"; ctx.font = "700 20px " + font; ctx.fillText(d.label, w / 2, 114);
   if (d.code) {
     roundRectPath(ctx, 100, 136, w - 200, 56, 10); ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.fill();
@@ -273,7 +280,7 @@ function downloadCoupon() {
 }
 
 function init() {
-  if (!TOKEN) { message("링크가 유효하지 않습니다."); return; }
+  if (!TOKEN) { showInvalid(); return; }
   app.innerHTML = '<div class="sk" style="height:120px"></div>';
   request(GAS_URL + "?api=stamp&t=" + encodeURIComponent(TOKEN))
     .then(function (res) {
@@ -281,7 +288,8 @@ function init() {
       // 수령 직후엔 스탬프가 0이라 카드를 못 찾을 수 있다 — 저장해 둔 쿠폰이 있으면 그걸 보여준다
       var saved = loadCoupon();
       if (res.error === "invalid" && saved) { showCoupon(saved, true); return; }
-      message(res.error === "invalid" ? "링크가 유효하지 않습니다." : "잠시 후 다시 시도해주세요.", res.error !== "invalid");
+      if (res.error === "invalid") { showInvalid(); return; }
+      message("잠시 후 다시 시도해주세요.", true);
     })
     .catch(function () {
       var saved = loadCoupon();
