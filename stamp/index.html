@@ -16,6 +16,7 @@
     width: 100%; max-width: 400px; background: #ffffff; border-radius: 20px;
     border: 1px solid #e5e5e0; box-shadow: 0 4px 16px rgba(0,0,0,0.08); padding: 28px 22px 26px;
   }
+  .card--coupon { padding: 22px; } /* 쿠폰 화면은 상하좌우 여백을 같게 */
   .brand { font-size: 15px; font-weight: 500; color: #6b7076; margin: 0; }
   .head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 20px; }
   .title { font-size: clamp(22px, 7.4vw, 28px); font-weight: 800; color: #191f28; margin: 0; letter-spacing: -0.02em; white-space: nowrap; }
@@ -42,7 +43,7 @@
     display: block; margin: 10px auto 0; background: none; border: none; color: #888; font-size: 12px; cursor: pointer;
   }
   .coupon-card {
-    margin-top: 8px; padding: 24px 16px; border-radius: 14px; background: #23db6d; color: #fff; text-align: center;
+    margin-top: 0; padding: 24px 16px; border-radius: 14px; background: #23db6d; color: #fff; text-align: center;
   }
   .coupon-brand { font-size: 12px; opacity: 0.85; margin: 0; }
   .coupon-label { font-size: 15px; font-weight: 700; margin: 6px 0 14px; }
@@ -55,8 +56,11 @@
     border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
   }
   .steps { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: #f2f4f6; }
-  .steps-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #191f28; }
-  .steps ol { margin: 0; padding-left: 18px; font-size: 13px; color: #4e5968; line-height: 1.7; }
+  .steps-title { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: #191f28; }
+  .steps ol { margin: 0; padding-left: 18px; font-size: 15px; color: #4e5968; line-height: 1.7; }
+  .steps ol li { white-space: pre-line; word-break: keep-all; }
+  .steps-notes { margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid #e5e8eb; list-style: none; font-size: 13px; color: #8b95a1; line-height: 1.6; }
+  .steps-notes li { white-space: pre-line; word-break: keep-all; margin-bottom: 3px; }
   .coupon-note { margin: 10px 2px 0; font-size: 11.5px; color: #8b95a1; line-height: 1.5; }
   .msg { text-align: center; color: #888; font-size: 14px; line-height: 1.6; padding: 12px 0; }
   .msg .reward-btn { max-width: 200px; }
@@ -173,11 +177,20 @@ function claimReward() {
 
 function showCoupon(data, saved) {
   couponData = data;
+  var card = document.querySelector(".card");
+  if (card) card.classList.add("card--coupon");
   var stepsHtml = "";
   if (data.steps && data.steps.length) {
-    stepsHtml = '<div class="steps"><p class="steps-title">쿠폰 등록 방법</p><ol>';
+    stepsHtml = '<div class="steps"><p class="steps-title">쿠폰 사용 방법</p><ol>';
     for (var i = 0; i < data.steps.length; i++) stepsHtml += "<li>" + esc(data.steps[i]) + "</li>";
-    stepsHtml += "</ol></div>";
+    stepsHtml += "</ol>";
+    // 별표 안내 — 본문의 70% 크기, 회색
+    if (data.notes && data.notes.length) {
+      stepsHtml += '<ul class="steps-notes">';
+      for (var n = 0; n < data.notes.length; n++) stepsHtml += "<li>* " + esc(data.notes[n]) + "</li>";
+      stepsHtml += "</ul>";
+    }
+    stepsHtml += "</div>";
   }
   app.innerHTML =
     (saved ? '<p class="coupon-note" style="text-align:center;margin:0 0 6px">이전에 받은 쿠폰이에요</p>' : "") +
@@ -186,8 +199,7 @@ function showCoupon(data, saved) {
       '<p class="coupon-label">' + esc(data.label) + "</p>" +
       (data.code ? '<p class="coupon-code">' + esc(data.code) + '</p><button class="copy-btn" onclick="copyCode()">코드 복사</button>' : "") +
     "</div>" + stepsHtml +
-    '<p class="coupon-note">' + esc(data.disclaimer) + "</p>" +
-    (data.code ? '<button class="reward-btn" onclick="downloadCoupon()">이미지로 저장</button><div id="savedImage"></div>' : "");
+    (data.notes && data.notes.length ? "" : '<p class="coupon-note">' + esc(data.disclaimer) + "</p>");
 }
 
 function copyCode() {
@@ -205,78 +217,6 @@ function copyCode() {
   }
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(d.code).then(done).catch(fallback);
   else fallback();
-}
-
-function roundRectPath(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-function wrapLines(ctx, text, maxWidth) {
-  var words = text.split(" "), line = "", lines = [];
-  for (var i = 0; i < words.length; i++) {
-    var test = line ? line + " " + words[i] : words[i];
-    if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = words[i]; } else line = test;
-  }
-  if (line) lines.push(line);
-  return lines;
-}
-
-// canvas 2D로 직접 그려서 저장 — 이미지 로드가 없어 iOS Safari/카카오톡 인앱 브라우저의 "Tainted canvas" 오류가 없다.
-// 높이는 등록 방법/안내 문구 줄 수에 맞춰 먼저 측정한 뒤 캔버스를 만든다.
-function downloadCoupon() {
-  var d = couponData;
-  if (!d) return;
-  var w = 640, scale = 2, font = "-apple-system, sans-serif", innerW = w - 160;
-  var m = document.createElement("canvas").getContext("2d");
-  m.font = "400 14px " + font;
-  var stepLines = [];
-  (d.steps || []).forEach(function (t, idx) { stepLines.push(wrapLines(m, (idx + 1) + ". " + t, innerW)); });
-  m.font = "400 12px " + font;
-  var noteLines = wrapLines(m, d.disclaimer, innerW);
-  var stepsH = 0;
-  stepLines.forEach(function (ls) { stepsH += ls.length * 22 + 4; });
-  var h = 190 + (d.code ? 90 : 20) + (stepLines.length ? 40 + stepsH : 0) + noteLines.length * 18 + 40;
-
-  var canvas = document.createElement("canvas");
-  canvas.width = w * scale; canvas.height = h * scale;
-  var ctx = canvas.getContext("2d");
-  ctx.scale(scale, scale);
-  ctx.fillStyle = "#f5f5f0"; ctx.fillRect(0, 0, w, h);
-  roundRectPath(ctx, 20, 20, w - 40, h - 40, 18); ctx.fillStyle = "#ffffff"; ctx.fill();
-  var topH = d.code ? 190 : 120;
-  roundRectPath(ctx, 40, 40, w - 80, topH, 14); ctx.fillStyle = "#23db6d"; ctx.fill();
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(255,255,255,0.9)"; ctx.font = "600 15px " + font; ctx.fillText(fullBranch(d.branchName), w / 2, 80);
-  ctx.fillStyle = "#ffffff"; ctx.font = "700 20px " + font; ctx.fillText(d.label, w / 2, 114);
-  if (d.code) {
-    roundRectPath(ctx, 100, 136, w - 200, 56, 10); ctx.fillStyle = "rgba(255,255,255,0.18)"; ctx.fill();
-    ctx.fillStyle = "#ffffff"; ctx.font = "800 26px " + font; ctx.fillText(d.code, w / 2, 173);
-  }
-  var y = 40 + topH + 36;
-  ctx.textAlign = "left";
-  if (stepLines.length) {
-    ctx.fillStyle = "#191f28"; ctx.font = "700 15px " + font; ctx.fillText("쿠폰 등록 방법", 80, y); y += 28;
-    ctx.fillStyle = "#4e5968"; ctx.font = "400 14px " + font;
-    stepLines.forEach(function (ls) {
-      ls.forEach(function (line, i) { ctx.fillText((i > 0 ? "    " : "") + line, 80, y); y += 22; });
-      y += 4;
-    });
-    y += 8;
-  }
-  ctx.fillStyle = "#8b95a1"; ctx.font = "400 12px " + font;
-  noteLines.forEach(function (line) { ctx.fillText(line, 80, y); y += 18; });
-
-  // 인앱 브라우저에서는 파일 다운로드가 막히는 경우가 있어, 화면에 이미지를 띄워 길게 눌러 저장할 수 있게 하고 다운로드 링크도 함께 둔다
-  var dataUrl = canvas.toDataURL("image/png");
-  document.getElementById("savedImage").innerHTML =
-    '<p class="coupon-note" style="text-align:center">아래 이미지를 길게 눌러 저장하세요</p>' +
-    '<img src="' + dataUrl + '" style="width:100%;border-radius:12px;display:block" alt="쿠폰 이미지" />' +
-    '<a href="' + dataUrl + '" download="eh-coupon.png" class="reward-btn" style="display:block;text-align:center;text-decoration:none">이미지 다운로드</a>';
 }
 
 function init() {
