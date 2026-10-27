@@ -33,6 +33,8 @@
     display: block; width: 100%; margin-top: 18px; padding: 13px; border: none; border-radius: 12px;
     background: #e6faee; color: #1fb85c; font-size: 15px; font-weight: 700; cursor: pointer;
   }
+  .ref-hint { display: none; margin: 10px 2px 0; text-align: center; font-size: 12.5px; color: #8b95a1; word-break: keep-all; }
+  .ref-hint.open { display: block; }
   .ref-img { display: none; margin-top: 12px; }
   .ref-img img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid #e5e5e0; }
   .ref-img.open { display: block; }
@@ -67,14 +69,16 @@
       </li>
     </ol>
     <button class="ref-btn" id="refBtn" type="button" aria-expanded="false" aria-controls="refImg">참고 이미지 보기</button>
+    <p class="ref-hint" id="refHint">참고 이미지를 클릭하면 확대하여 확인 가능합니다</p>
     <div class="ref-img" id="refImg">
       <a href="../assets/extend-guide.jpg" target="_blank" rel="noopener"><img src="../assets/extend-guide.jpg" alt="충전권 &amp; 기간권 연장방법: 스터디모아앱 내공간 &gt; 연장 &gt; 이용권 구매" /></a>
     </div>
   </div>
 <script>
-  var btn = document.getElementById("refBtn"), box = document.getElementById("refImg");
+  var btn = document.getElementById("refBtn"), box = document.getElementById("refImg"), hint = document.getElementById("refHint");
   btn.addEventListener("click", function () {
     var open = box.classList.toggle("open");
+    hint.classList.toggle("open", open);
     btn.textContent = open ? "참고 이미지 닫기" : "참고 이미지 보기";
     btn.setAttribute("aria-expanded", open ? "true" : "false");
   });
