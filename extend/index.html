@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>이용권 연장 방법</title>
+<title>기간권 연장 방법</title>
 <meta name="robots" content="noindex" />
 <style>
   * { box-sizing: border-box; }
@@ -18,7 +18,8 @@
   }
   .brand { margin: 0; font-size: 15px; font-weight: 500; color: #6b7076; }
   .title { margin: 6px 0 4px; font-size: 24px; font-weight: 800; color: #191f28; letter-spacing: -0.02em; }
-  .sub { margin: 0 0 22px; font-size: 14px; color: #6b7076; }
+  .sub { margin: 0 0 14px; font-size: 14px; color: #6b7076; word-break: keep-all; }
+  .discount { margin: 0 0 20px; font-size: 21px; font-weight: 800; color: #23db6d; letter-spacing: -0.02em; word-break: keep-all; }
   .steps { list-style: none; margin: 0; padding: 0; }
   .step { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-top: 1px solid #f0f1f3; }
   .step:first-child { border-top: none; }
@@ -26,43 +27,57 @@
     flex: 0 0 28px; height: 28px; border-radius: 50%; background: #23db6d; color: #fff;
     display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
   }
-  .step-title { margin: 3px 0 0; font-size: 16px; font-weight: 700; color: #191f28; }
-  .step-desc { margin: 4px 0 0; font-size: 13.5px; color: #6b7076; line-height: 1.5; }
-  .badge {
-    margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: #e6faee;
-    color: #23db6d; font-size: 14px; font-weight: 700; text-align: center;
+  .step-title { margin: 3px 0 0; font-size: 16px; font-weight: 700; color: #191f28; word-break: keep-all; }
+  .step-desc { margin: 4px 0 0; font-size: 13.5px; color: #6b7076; line-height: 1.5; word-break: keep-all; }
+  .ref-btn {
+    display: block; width: 100%; margin-top: 18px; padding: 13px; border: none; border-radius: 12px;
+    background: #e6faee; color: #1fb85c; font-size: 15px; font-weight: 700; cursor: pointer;
   }
+  .ref-img { display: none; margin-top: 12px; }
+  .ref-img img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid #e5e5e0; }
+  .ref-img.open { display: block; }
 </style>
 </head>
 <body>
   <div class="card">
     <p class="brand">에브리아워</p>
-    <h1 class="title">이용권 연장 방법</h1>
-    <p class="sub">스터디모아 앱에서 간단하게 연장할 수 있어요</p>
+    <h1 class="title">기간권 연장 방법</h1>
+    <p class="sub">스터디모아 앱에서 간단하게 연장할 수 있어요.</p>
+    <p class="discount">※ 연장 시 5% 할인 적용</p>
     <ol class="steps">
       <li class="step">
         <span class="num">1</span>
         <div>
-          <p class="step-title">스터디모아 앱을 열어요</p>
-          <p class="step-desc">에브리아워를 이용하시는 그 앱이에요.</p>
+          <p class="step-title">스터디모아 앱 좌석 선택</p>
+          <p class="step-desc">좌석 선택 후 [연장] 버튼이 활성화 됩니다</p>
         </div>
       </li>
       <li class="step">
         <span class="num">2</span>
         <div>
-          <p class="step-title">[연장]을 눌러요</p>
-          
+          <p class="step-title">내공간 탭 &gt; [연장] 버튼 선택</p>
         </div>
       </li>
       <li class="step">
         <span class="num">3</span>
         <div>
-          <p class="step-title">원하는 이용권을 선택해요</p>
-          <p class="step-desc">연장 시 5% 할인이 자동으로 적용돼요.</p>
+          <p class="step-title">원하는 기간권 선택 후 구매</p>
+          <p class="step-desc">기간권 &gt; 충전권 변경 구매 5%할인 채널톡 문의</p>
         </div>
       </li>
     </ol>
-    <div class="badge">연장 시 5% 할인 적용</div>
+    <button class="ref-btn" id="refBtn" type="button" aria-expanded="false" aria-controls="refImg">참고 이미지 보기</button>
+    <div class="ref-img" id="refImg">
+      <a href="../assets/extend-guide.jpg" target="_blank" rel="noopener"><img src="../assets/extend-guide.jpg" alt="충전권 &amp; 기간권 연장방법: 스터디모아앱 내공간 &gt; 연장 &gt; 이용권 구매" /></a>
+    </div>
   </div>
+<script>
+  var btn = document.getElementById("refBtn"), box = document.getElementById("refImg");
+  btn.addEventListener("click", function () {
+    var open = box.classList.toggle("open");
+    btn.textContent = open ? "참고 이미지 닫기" : "참고 이미지 보기";
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+</script>
 </body>
 </html>
