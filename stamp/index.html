@@ -86,6 +86,17 @@ var TOKEN = new URLSearchParams(location.search).get("t") || "";
 var app = document.getElementById("app");
 var couponData = null;
 
+// 예시(데모) 화면 — 주소의 t가 demo 로 시작하면 서버를 호출하지 않고 가짜 데이터로 그린다(실제 고객·쿠폰 정보 없음).
+//   ?t=demo   → 7/20 적립 중 화면     ?t=demo20 → 20/20 달성 + 쿠폰 받기(샘플 쿠폰)
+function isDemo() { return /^demo/.test(TOKEN); }
+var DEMO_CARD = { branchName: "구의점", goal: 20, rewardName: "원데이 이용권 1개 무료쿠폰" };
+var DEMO_COUPON = {
+  branchName: "구의점", label: "원데이(15h) 이용권 1개", code: "SAMPLE",
+  steps: ["[스터디모아] 앱에서 좌석 선택", "원데이 (15h)★ 구매하기 선택", "할인쿠폰 > 쿠폰선택", "쿠폰코드[SAMPLE] 입력 후 등록", "쿠폰 적용 후 0원 구매하기", "[내공간]에서 출입 비번 확인 후 입실"],
+  notes: ["이 화면은 예시이며 실제 쿠폰이 아닙니다."],
+  disclaimer: ""
+};
+
 // 화면에 보이는 지점명은 "에브리아워 구의점" 형태 (API는 "구의점"만 내려줌)
 function fullBranch(name) {
   name = String(name || "");
@@ -155,6 +166,7 @@ var claiming = false;
 // 로고나 "무료쿠폰 받기"를 누르면 바로 쿠폰을 받는다(확인 단계 없음). 받으면 스탬프가 0으로 초기화된다.
 function claimReward() {
   if (claiming) return;
+  if (isDemo()) { showCoupon(DEMO_COUPON); return; } // 데모: 서버 호출·저장 없이 샘플 쿠폰만 보여준다
   claiming = true;
   var btn = document.querySelector(".gift-btn");
   var msg = document.getElementById("claimMsg");
@@ -220,6 +232,11 @@ function copyCode() {
 }
 
 function init() {
+  if (isDemo()) {
+    renderCard(Object.assign({ count: TOKEN === "demo20" ? 20 : 7 }, DEMO_CARD));
+    app.insertAdjacentHTML("beforeend", '<p class="coupon-note" style="text-align:center;margin-top:14px">※ 예시 화면이에요</p>');
+    return;
+  }
   if (!TOKEN) { showInvalid(); return; }
   app.innerHTML = '<div class="sk" style="height:120px"></div>';
   request(GAS_URL + "?api=stamp&t=" + encodeURIComponent(TOKEN))
