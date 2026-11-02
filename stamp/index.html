@@ -180,9 +180,11 @@ function claimReward() {
       showCoupon(res.data);
     })
     .catch(function (err) {
-      var notReached = String(err && err.message).indexOf("달성") >= 0;
+      var m = String(err && err.message);
+      var notReached = m.indexOf("달성") >= 0;
+      var noStock = m.indexOf("재고") >= 0; // 쿠폰 코드가 소진된 경우 — 스탬프는 초기화되지 않았으니 안심시키고 문의 안내
       if (btn) { btn.disabled = false; btn.textContent = "무료쿠폰 받기"; }
-      if (msg) msg.textContent = notReached ? "아직 목표를 달성하지 않았어요." : "오류가 발생했어요. 다시 시도해주세요.";
+      if (msg) msg.textContent = noStock ? "쿠폰을 준비하고 있어요. 스탬프는 그대로 유지되니 잠시 후 다시 시도하시거나 카톡채널로 문의해 주세요." : notReached ? "아직 목표를 달성하지 않았어요." : "오류가 발생했어요. 다시 시도해주세요.";
     })
     .finally(function () { claiming = false; });
 }
